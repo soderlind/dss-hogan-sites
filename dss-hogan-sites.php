@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Hogan Module: Sites
+ * Plugin Name: DSS Hogan Module: Sites
  * Plugin URI: https://github.com/soderlind//dss-hogan-sites
  * GitHub Plugin URI: https://github.com/soderlind//dss-hogan-sites
- * Description: List network portfolio. Require Network Portfolio plugin installed, activated and configured.
+ * Description: List network sites. Require Network Portfolio plugin installed, activated and configured.
  * Version: 1.0.0
  * Author: Per Soderlind
  * Author URI: https://soderlind.no
