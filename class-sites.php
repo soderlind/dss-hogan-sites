@@ -322,7 +322,8 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 					$img_width,
 					$img_height,
 					$arguments['title'],
-					$arguments['description']
+					''
+					// $arguments['description']
 				);
 			} else {
 				return sprintf( '<!--invalid_cloudinary_account %s-->', print_r( $arguments, true ) );
