@@ -4,5 +4,7 @@
     "type": "wordpress-plugin",
     "homepage": "https://github.com/soderlind/dss-hogan-sites",
     "license": "GPL-2.0-or-later",
-    "require": {}
+    "require": {
+        "cloudinary/cloudinary_php": "^2"
+    }
 }

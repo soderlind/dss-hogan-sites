@@ -24,6 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
 
+require_once __DIR__ . '/vendor/autoload.php';
+
 add_action( 'plugins_loaded', __NAMESPACE__ . '\\hogan_sites_load_textdomain' );
 add_action( 'hogan/include_modules', __NAMESPACE__ . '\\hogan_sites_register_module', 10, 1 );
 
@@ -48,12 +50,12 @@ function hogan_sites_load_textdomain() {
  */
 function hogan_sites_register_module( \Dekode\Hogan\Core $core ) {
 	// if ( ! class_exists( '\NetworkPortfolio\Shortcodes\Portfolio' )  ) {
-	// 	add_action(
-	// 		'admin_notices', function() {
-	// 			echo '<div class="error notice"><p>Hogan Module, Sites: The Network Portfolio plugin must be installed, activated and configured</p></div>';
-	// 		}
-	// 	);
-	// 	return;
+	// add_action(
+	// 'admin_notices', function() {
+	// echo '<div class="error notice"><p>Hogan Module, Sites: The Network Portfolio plugin must be installed, activated and configured</p></div>';
+	// }
+	// );
+	// return;
 	// }
 	require_once 'class-sites.php';
 	$core->register_module( new \DSS\Hogan\Sites() );

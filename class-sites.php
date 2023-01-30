@@ -8,6 +8,10 @@
 declare( strict_types = 1 );
 namespace DSS\Hogan;
 
+use Cloudinary\Asset\Media;
+use Cloudinary\Configuration\Configuration;
+use Cloudinary\Api\Admin\AdminApi;
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
@@ -76,13 +80,13 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 					'instructions'  => __( 'Choose the number of items for the list, 0 = all', 'dss-hogan-sites' ),
 					'required'      => 0,
 					// 'conditional_logic' => [
-					// 	[
-					// 		[
-					// 			'field'    => $this->field_key . '_list_type',
-					// 			'operator' => '==',
-					// 			'value'    => 'automatic',
-					// 		],
-					// 	],
+					// [
+					// [
+					// 'field'    => $this->field_key . '_list_type',
+					// 'operator' => '==',
+					// 'value'    => 'automatic',
+					// ],
+					// ],
 					// ],
 					'default_value' => 0,
 					'min'           => 0,
@@ -105,7 +109,7 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 		public function load_args_from_layout_content( array $raw_content, int $counter = 0 ) {
 
 			$this->theme           = trim( $raw_content['theme'] ?? '' );
-			$this->number_of_sites = filter_var( $raw_content['number_of_sites'], FILTER_VALIDATE_INT, array( 'default' => 0 ) );
+			$this->number_of_sites = filter_var( $raw_content['number_of_sites'], FILTER_VALIDATE_INT, [ 'default' => 0 ] );
 
 			parent::load_args_from_layout_content( $raw_content, $counter );
 		}
@@ -124,58 +128,62 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 			global $wp_version;
 
 			$attributes = shortcode_atts(
-				array(
+				[
 					'sites'   => 0,
 					'width'   => 0,
 					'height'  => 0,
-					'expires' => 600, //10 minutes
+					'expires' => 600, // 10 minutes
 					'orderby' => 'modified=DESC&title=DESC',
 					'theme'   => '',
 					'num'     => 0,
 					'list'    => false,
 					'all'     => false,
-					'noshow'  => array(),
-				), $attributes, 'networkportfolio'
+					'noshow'  => [],
+				],
+				$attributes,
+				'networkportfolio'
 			);
 
-			//validate
+			// validate
 			// $attributes['cols']     = filter_var( $attributes['cols'],     FILTER_VALIDATE_INT, array( 'default' => 3 ) );
-			$attributes['expires'] = filter_var( $attributes['expires'], FILTER_VALIDATE_INT, array( 'default' => 600 ) );
-			$attributes['orderby'] = filter_var( $attributes['orderby'], FILTER_SANITIZE_STRING, array( 'default' => 'modified=DESC&title=DESC' ) );
-			$attributes['noshow']  = ( 0 !== count( $attributes['noshow'] ) ) ? explode( ',', $attributes['noshow'] ) : array();
+			$attributes['expires'] = filter_var( $attributes['expires'], FILTER_VALIDATE_INT, [ 'default' => 600 ] );
+			$attributes['orderby'] = filter_var( $attributes['orderby'], FILTER_SANITIZE_STRING, [ 'default' => 'modified=DESC&title=DESC' ] );
+			$attributes['noshow']  = ( 0 !== count( $attributes['noshow'] ) ) ? explode( ',', $attributes['noshow'] ) : [];
 
 			$shortcode_transient_id = 'network_portfolio' . md5( serialize( $attributes ) );// create unique transient id pr shortcode used
 			if ( false === ( $network_blogs = get_site_transient( $shortcode_transient_id ) ) ) {
-				$sites         = array();
-				$network_blogs = array();
+				$sites         = [];
+				$network_blogs = [];
 				if ( 0 != $attributes['sites'] ) {
 					$sites = explode( ',', $attributes['sites'] );
 					foreach ( $sites as $site ) {
 						$network_blogs = array_merge(
-							$network_blogs, get_sites(
-								array(
+							$network_blogs,
+							get_sites(
+								[
 									'ID'     => $site,
 									'public' => true,
-								)
+								]
 							)
 						);
 					}
 					// sort on last_updated, newest first
 					usort(
-						$network_blogs, function( $a, $b ) {
+						$network_blogs,
+						function( $a, $b ) {
 							return $a->last_updated < $b->last_updated;
 						}
 					);
 				} else {
 					$network_blogs = get_sites(
-						array(
+						[
 							'public'            => true,
 							'orderby'           => 'last_updated',
 							'order'             => 'DESC',
 							'update_site_cache' => true,
 							'site__not_in'      => $attributes['noshow'],
 
-						)
+						]
 					);
 				}
 			}
@@ -183,19 +191,19 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 
 			$current_site = get_current_blog_id();
 
-			$thumb_settings = array(
+			$thumb_settings = [
 				'width'         => ( 0 != $attributes['width'] ) ? $attributes['width'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[width]', '430' ),
 				'height'        => ( 0 != $attributes['height'] ) ? $attributes['height'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[height]', '225' ),
 				'border_width'  => '0', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_width]', '0' ),
 				'border_radius' => '0', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_radius]', '0' ),
 				'border_color'  => \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_color]', '#000000' ),
-			);
+			];
 
 			$show_in_portfolio = get_site_option( 'network_portfolio' );
 			$output_string     = ( false === $attributes['list'] ) ? '<ul class="list-items card-type-large">' : '<ul class="network-portfolio-list">';
 			if ( 0 < count( (array) $network_blogs ) ) {
 				$num_thumbs = 0;
-				$list_sites = array();
+				$list_sites = [];
 				foreach ( $network_blogs as $network_blog_object ) {
 					$network_blog = (array) $network_blog_object;
 					if ( false === $attributes['all'] && ( ! isset( $show_in_portfolio[ $network_blog['blog_id'] ] ) || 'visible' != $show_in_portfolio[ $network_blog['blog_id'] ] ) ) {
@@ -242,7 +250,8 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 			if ( false !== $attributes['list'] ) {
 				// sort on blogname, ascending order
 				usort(
-					$list_sites, function( $a, $b ) {
+					$list_sites,
+					function( $a, $b ) {
 						return strtolower( $a->blogname ) > strtolower( $b->blogname );
 					}
 				);
@@ -254,7 +263,7 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 			$output_string .= '</ul>';
 
 			switch_to_blog( $current_site );
-			$GLOBALS['_wp_switched_stack'] = array();
+			$GLOBALS['_wp_switched_stack'] = [];
 			$GLOBALS['switched']           = false;
 
 			return $output_string;
@@ -267,67 +276,71 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 			$api_key    = \NetworkPortfolio\Helper::get_option( 'networkportfolio[api_key]' );
 			$api_secret = \NetworkPortfolio\Helper::get_option( 'networkportfolio[api_secret]' );
 
-			if ( false !== \NetworkPortfolio\Helper::is_valid_cloudinary_account( $cloud_name, $api_key, $api_secret ) ) {
-				$border = array();
-				if ( 0 !== $arguments['border_width'] ) {
-					$border['border'] = array(
-						'width' => $arguments['border_width'],
-						'color' => $arguments['border_color'],
-					);
-				}
-
-				$settings = array(
-					'type'         => 'url2png',
-					'crop'         => 'fill',
-					'gravity'      => 'north',
-					'fetch_format' => 'auto',
-					'width'        => $arguments['width'],
-					'height'       => $arguments['height'],
-					'radius'       => $arguments['border_radius'],
-					'sign_url'     => true,
-				);
-
-				// fix cloudinary radius bug (makes a radis even though radius = 0. so don't send radius parameter when it's 0)
-				if ( 0 === $settings['radius'] ) {
-					unset( $settings['radius'] );
-				}
-
-				if ( count( $border ) ) {
-					$settings = array_merge( $settings, $border );
-				}
-
-				$img_width  = $arguments['width'];
-				$img_height = $arguments['height'];
-				if ( 0 !== $arguments['border_width'] ) {
-					$img_width  = $img_width + ( $arguments['border_width'] * 2 );
-					$img_height = $img_height + ( $arguments['border_width'] * 2 );
-				}
-
-				return  sprintf(
-					'<li class="list-item">
-						<a href="%1$s">
-							<div class="column">
-								<div class="featured-image">
-									<img src="%2$s" width="%3$s" height="%4$s" class="attachment-medium-3-2 size-medium-3-2 wp-post-image" sizes="(max-width: 432px) 100vw, 432px"/>
-								</div>
-							</div>
-							<div class="column">
-								<h3 class="entry-title">%5$s</h3>
-								<div class="entry-summary"><p>%6$s</p></div>
-							</div>
-						</a>
-					</li>',
-					$arguments['url'],
-					cloudinary_url( $arguments['url'], $settings ),
-					$img_width,
-					$img_height,
-					$arguments['title'],
-					''
-					// $arguments['description']
-				);
-			} else {
+			Configuration::instance( "cloudinary://$api_key:$api_secret@$cloud_name?secure=true" );
+			try {
+				( new AdminApi() )->ping();
+			} catch ( \Exception $e ) {
 				return sprintf( '<!--invalid_cloudinary_account %s-->', print_r( $arguments, true ) );
-			} // End if().
+			}
+
+			$border = [];
+			if ( 0 !== $arguments['border_width'] ) {
+				$border['border'] = [
+					'width' => $arguments['border_width'],
+					'color' => $arguments['border_color'],
+				];
+			}
+
+			$settings = [
+				'type'         => 'url2png',
+				'crop'         => 'fill',
+				'gravity'      => 'north',
+				'fetch_format' => 'auto',
+				'width'        => $arguments['width'],
+				'height'       => $arguments['height'],
+				'radius'       => $arguments['border_radius'],
+				'sign_url'     => true,
+			];
+
+			// fix cloudinary radius bug (makes a radis even though radius = 0. so don't send radius parameter when it's 0)
+			if ( 0 === $settings['radius'] ) {
+				unset( $settings['radius'] );
+			}
+
+			if ( count( $border ) ) {
+				$settings = array_merge( $settings, $border );
+			}
+
+			$img_width  = $arguments['width'];
+			$img_height = $arguments['height'];
+			if ( 0 !== $arguments['border_width'] ) {
+				$img_width  = $img_width + ( $arguments['border_width'] * 2 );
+				$img_height = $img_height + ( $arguments['border_width'] * 2 );
+			}
+
+			return sprintf(
+				'<li class="list-item">
+					<a href="%1$s">
+						<div class="column">
+							<div class="featured-image">
+								<img src="%2$s" width="%3$s" height="%4$s" class="attachment-medium-3-2 size-medium-3-2 wp-post-image" sizes="(max-width: 432px) 100vw, 432px"/>
+							</div>
+						</div>
+						<div class="column">
+							<h3 class="entry-title">%5$s</h3>
+							<div class="entry-summary"><p>%6$s</p></div>
+						</div>
+					</a>
+				</li>',
+				$arguments['url'],
+				Media::fromParams( $arguments['url'], $settings ),
+				$img_width,
+				$img_height,
+				$arguments['title'],
+				''
+				// $arguments['description']
+			);
+
 		}
 	}
 }
