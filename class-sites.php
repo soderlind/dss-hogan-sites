@@ -8,12 +8,29 @@
 declare( strict_types = 1 );
 namespace DSS\Hogan;
 
-use Cloudinary\Asset\Media;
-use Cloudinary\Configuration\Configuration;
-use Cloudinary\Api\Admin\AdminApi;
+use Urlbox\Screenshots\Urlbox;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
+}
+
+/**
+ * Get env variable.
+ *
+ * @param string $key Variable key.
+ *
+ * @return string
+ */
+function env( string $key ): string {
+	return isset( $_ENV[ $key ] ) ? $_ENV[ $key ] : '';
+}
+
+/**
+ * Load environment variables
+ */
+if ( file_exists( __DIR__ . '/.env' ) ) {
+	$dotenv = new \Symfony\Component\Dotenv\Dotenv();
+	$dotenv->load( __DIR__ . '/.env' );
 }
 
 if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\Module' ) ) {
@@ -198,11 +215,11 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 			$current_site = get_current_blog_id();
 
 			$thumb_settings = [
-				'width'         => ( 0 != $attributes['width'] ) ? $attributes['width'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[width]', '430' ),
-				'height'        => ( 0 != $attributes['height'] ) ? $attributes['height'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[height]', '225' ),
-				'border_width'  => '0', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_width]', '0' ),
+				'width'         => '310', // ( 0 != $attributes['width'] ) ? $attributes['width'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[width]', '430' ),
+				'height'        => '175', // ( 0 != $attributes['height'] ) ? $attributes['height'] : \NetworkPortfolio\Helper::get_option( 'networkportfolio[height]', '225' ),
+				'border_width'  => '1', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_width]', '0' ),
 				'border_radius' => '0', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_radius]', '0' ),
-				'border_color'  => \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_color]', '#000000' ),
+				'border_color'  => '#D7D3D3', // \NetworkPortfolio\Helper::get_option( 'networkportfolio[border_color]', '#000000' ),
 			];
 
 			$show_in_portfolio = get_site_option( 'network_portfolio' );
@@ -277,55 +294,27 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 
 
 		function webshot( $arguments ) {
-
-			$cloud_name = \NetworkPortfolio\Helper::get_option( 'networkportfolio[cloud_name]' );
-			$api_key    = \NetworkPortfolio\Helper::get_option( 'networkportfolio[api_key]' );
-			$api_secret = \NetworkPortfolio\Helper::get_option( 'networkportfolio[api_secret]' );
-
-			Configuration::instance( "cloudinary://$api_key:$api_secret@$cloud_name?secure=true" );
 			try {
-				( new AdminApi() )->ping();
-			} catch ( \Exception $e ) {
-				return sprintf( '<!--invalid_cloudinary_account %s-->', print_r( $arguments, true ) );
-			}
+				$urlbox = Urlbox::fromCredentials( env( 'URLBOX_KEY' ), env( 'URLBOX_SECRET' ) );
 
-			$border = [];
-			if ( 0 !== $arguments['border_width'] ) {
-				$border['border'] = [
-					'width' => $arguments['border_width'],
-					'color' => $arguments['border_color'],
+				$settings = [
+					'width'        => '1600',
+					'retina'       => 'true',
+					'height'       => '1024',
+					'thumb_width'  => $arguments['width'],
+					'thumb_height' => $arguments['height'],
+					'url'          => $arguments['url'],
 				];
-			}
 
-			$settings = [
-				'type'         => 'url2png',
-				'crop'         => 'fill',
-				'gravity'      => 'north',
-				'fetch_format' => 'auto',
-				'width'        => $arguments['width'],
-				'height'       => $arguments['height'],
-				'radius'       => $arguments['border_radius'],
-				'sign_url'     => true,
-			];
+				$img_width  = $arguments['width'];
+				$img_height = $arguments['height'];
+				// if ( 0 !== $arguments['border_width'] ) {
+				// $img_width  = $img_width + ( $arguments['border_width'] * 2 );
+				// $img_height = $img_height + ( $arguments['border_width'] * 2 );
+				// }
 
-			// fix cloudinary radius bug (makes a radis even though radius = 0. so don't send radius parameter when it's 0)
-			if ( 0 === $settings['radius'] ) {
-				unset( $settings['radius'] );
-			}
-
-			if ( count( $border ) ) {
-				$settings = array_merge( $settings, $border );
-			}
-
-			$img_width  = $arguments['width'];
-			$img_height = $arguments['height'];
-			if ( 0 !== $arguments['border_width'] ) {
-				$img_width  = $img_width + ( $arguments['border_width'] * 2 );
-				$img_height = $img_height + ( $arguments['border_width'] * 2 );
-			}
-
-			return sprintf(
-				'<li class="list-item">
+				return sprintf(
+					'<li class="list-item">
 					<a href="%1$s">
 						<div class="column">
 							<div class="featured-image">
@@ -338,15 +327,17 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 						</div>
 					</a>
 				</li>',
-				$arguments['url'],
-				Media::fromParams( $arguments['url'], $settings ),
-				$img_width,
-				$img_height,
-				$arguments['title'],
-				''
-				// $arguments['description']
-			);
-
+					$arguments['url'],
+					$urlbox->generateUrl( $settings ),
+					$img_width,
+					$img_height,
+					$arguments['title'],
+					''
+					// $arguments['description']
+				);
+			} catch ( \Exception $e ) {
+				return '<!-- Error: ' . $e->getMessage() . ' -->';
+			}
 		}
 	}
 }

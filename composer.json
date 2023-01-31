@@ -5,6 +5,7 @@
     "homepage": "https://github.com/soderlind/dss-hogan-sites",
     "license": "GPL-2.0-or-later",
     "require": {
-        "cloudinary/cloudinary_php": "^2"
+        "urlbox/screenshots": "^2.1",
+        "symfony/dotenv": "^5.4"
     }
 }
