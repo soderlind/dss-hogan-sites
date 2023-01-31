@@ -60,13 +60,18 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 					'name'          => 'theme',
 					'instructions'  => __( 'Choose site theme', 'dss-hogan-sites' ),
 					'choices'       => [
-						'all'                      => __( 'Alle', 'dss-hogan-sites' ),
-						'nettsteder-mal-utvalg'    => __( 'Utvalg', 'dss-hogan-sites' ),
-						'nettsteder-mal-fleksibel' => __( 'Fleksibel', 'dss-hogan-sites' ),
-						'nettsteder-mal-standard'  => __( 'Standard', 'dss-hogan-sites' ),
+						'all'                             => __( 'Alle', 'dss-hogan-sites' ),
+						'nettsteder-mal-utvalg'           => __( 'Utvalg', 'dss-hogan-sites' ),
+						'nettsteder-mal-fleksibel'        => __( 'Fleksibel', 'dss-hogan-sites' ),
+						'nettsteder-mal-standard'         => __( 'Standard', 'dss-hogan-sites' ),
+						'nettsteder-gutenberg-mal-utvalg' => __( 'Utvalg (Gutenberg)', 'dss-hogan-sites' ),
+						'nettsteder-gutenberg-mal-fleksibel' => __( 'Fleksibel (Gutenberg)', 'dss-hogan-sites' ),
+						'nettsteder-gutenberg-mal-standard' => __( 'Standard (Gutenberg)', 'dss-hogan-sites' ),
 					],
 					'allow_null'    => 0,
 					'default_value' => 'all',
+					'multiple'      => 1,
+					'ui'            => 1,
 					'return_format' => 'value',
 					'wrapper'       => [
 						'width' => '50',
@@ -108,7 +113,8 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 		 */
 		public function load_args_from_layout_content( array $raw_content, int $counter = 0 ) {
 
-			$this->theme           = trim( $raw_content['theme'] ?? '' );
+			// $this->theme           = trim( $raw_content['theme'] ?? '' );
+			$this->theme           = array_filter( $raw_content['theme'] );
 			$this->number_of_sites = filter_var( $raw_content['number_of_sites'], FILTER_VALIDATE_INT, [ 'default' => 0 ] );
 
 			parent::load_args_from_layout_content( $raw_content, $counter );
@@ -221,16 +227,16 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 					$network_blog_details->site_url    = $site_url;
 					$network_blog_details->blog_public = get_option( 'blog_public', 1 );
 					restore_current_blog();
-
 					if ( 2 == $network_blog_details->blog_public ) {
 						// Restricted Site Access plug-in is blocking public access to this site
 						continue;
 					}
+					if ( isset( $attributes['theme'] ) && false === array_search( 'all', $attributes['theme'] ) ) {
 
-					if ( '' != $attributes['theme'] && $attributes['theme'] != $network_blog_details->theme ) {
-						continue;
+						if ( isset( $attributes['theme'] ) && false === array_search( $network_blog_details->theme, $attributes['theme'], true ) ) {
+							continue;
+						}
 					}
-
 					$thumb_settings['url']         = $network_blog_details->site_url;
 					$thumb_settings['title']       = $network_blog_details->blogname;
 					$thumb_settings['description'] = get_bloginfo( 'description' );
