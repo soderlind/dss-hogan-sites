@@ -299,7 +299,7 @@ if ( ! class_exists( '\\DSS\\Hogan\\Sites' ) && class_exists( '\\Dekode\\Hogan\\
 
 				$settings = [
 					'width'        => '1600',
-					'retina'       => 'true',
+					// 'retina'       => 'true',
 					'height'       => '1024',
 					'thumb_width'  => $arguments['width'],
 					'thumb_height' => $arguments['height'],

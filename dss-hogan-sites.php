@@ -4,7 +4,7 @@
  * Plugin URI: https://github.com/soderlind//dss-hogan-sites
  * GitHub Plugin URI: https://github.com/soderlind//dss-hogan-sites
  * Description: List network sites. Require Network Portfolio plugin installed, activated and configured.
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Per Soderlind
  * Author URI: https://soderlind.no
  * License: GPL-3.0-or-later
